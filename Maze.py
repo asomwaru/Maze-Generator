@@ -93,15 +93,13 @@ class Maze(object):
 
                 yield self.grid[yp + y][xp + x]
 
-    @staticmethod
-    def wall_exists(first: Node, second: Node, wall: int) -> bool:
+    def _wall_exists(self, first: Node, second: Node, wall: int) -> bool:
         if wall in [0, 2]:
             return first.walls[wall] == second.walls[wall + 1]
         elif wall in [1, 3]:
             return first.walls[wall] == second.walls[wall - 1]
 
-    @staticmethod
-    def convert_pos(position):
+    def _convert_pos(self, position):
         directions = {
             "N": [0, -1],
             "S": [0, 1],
@@ -250,14 +248,13 @@ class Maze(object):
 
                 if y+1 <= img.height-1:
                     if all([i==255 for i in arr[y+1, x]]):
-
-                        current.walls[1] = 0
                         self.grid[current.y+1][current.x].walls[0] = 0
+                        current.walls[1] = 0
 
                 if x+1 <= img.width-1:
                     if all([i==255 for i in arr[y, x+1]]):
-                        current.walls[2] = 0
                         self.grid[current.y][current.x+1].walls[3] = 0
+                        current.walls[2] = 0
 
     def _translate_pos(self, x:int, y:int):
         new_pos = [0, 0]
@@ -275,25 +272,25 @@ class Maze(object):
         return new_pos
 
     def iterative_backtrack(self):
-        queue = [self.start_node]
+        stack = [self.start_node]
         visited = []
 
-        while len(queue) > 0:
-            current = queue.pop()
+        while len(stack) > 0:
+            current = stack.pop()
             visited.append((current.x, current.y))
 
             available_nodes = [x for x in self.neighbors(current.x, current.y) if not (x.x, x.y) in visited]
             random.shuffle(available_nodes)
 
             if len(available_nodes) > 0:
-                queue.append(current)
+                stack.append(current)
                 next_cell = available_nodes.pop()
                 position = next_cell - current
 
-                wall = self.convert_pos(position)
+                wall = self._convert_pos(position)
                 self.change_wall(current.x, current.y, wall)
 
-                queue.append(next_cell)
+                stack.append(next_cell)
 
     def Aldous_Broder(self):
         current = self.start_node
@@ -305,7 +302,7 @@ class Maze(object):
 
             if not (next_node.x, next_node.y) in visited:
                 position = next_node - current
-                wall = self.convert_pos(position)
+                wall = self._convert_pos(position)
 
                 self.change_wall(current.x, current.y, wall)
 
