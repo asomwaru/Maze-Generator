@@ -3,6 +3,8 @@ venv
 .idea
 
 maze.png
+nodes.png
+walk.gif
 maze.txt
 temp.py
 updated.png

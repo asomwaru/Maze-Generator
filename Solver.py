@@ -1,11 +1,41 @@
 import Maze
-import random
 import numpy as np
-from PIL import Image
-import time
+from PIL import Image, ImageDraw
 from pprint import pprint
 
+
 class Maze_Solver(object):
+    class Node(object):
+        def __init__(self, pos:list, edges:list):
+            self.pos = pos
+            self.parent = None
+            self.edges = edges
+
+        def __eq__(self, other):
+            if other == None:
+                return False
+            elif type(other) == list:
+                return self.pos == other
+            else:
+                return other.pos == self.pos
+
+        def __neq__(self, other):
+            if other == None:
+                return False
+            elif type(other) == list:
+                return self.pos != other
+            else:
+                return other.pos != self.pos
+
+        def __getitem__(self, index: int):  # Apparently it can do it for any amount of arguments
+            return self.pos[index]
+
+        def __repr__(self):
+            return str(self.pos)
+
+        def __str__(self):
+            return str(self.pos)
+
     def __init__(self, maze:Maze.Maze):
         self.maze = maze
 
@@ -37,7 +67,7 @@ class Maze_Solver(object):
 
         return zero
 
-    def _add_directions(self, current, dir):
+    def _add_directions(self, current:list, dir:list):
         dim = self.board.shape
 
         if current[0] + dir[0] < 0 or current[0] + dir[0] >= dim[1]:
@@ -48,24 +78,22 @@ class Maze_Solver(object):
 
         return [current[0] + dir[0], current[1] + dir[1]]
 
-    def _look_around(self, position):
+    def _look_around(self, position) -> list:
         if [position[0] - 1, position[1]] in self.vertices:
             return [position[0] - 1, position[1]]
 
-        if [position[0] + 1, position[1]] in self.vertices:
+        elif [position[0] + 1, position[1]] in self.vertices:
             return [position[0] + 1, position[1]]
 
-        if [position[0], position[1] - 1] in self.vertices:
+        elif [position[0], position[1] - 1] in self.vertices:
             return [position[0] , position[1] - 1]
 
-        if [position[0], position[1] + 1] in self.vertices:
+        elif [position[0], position[1] + 1] in self.vertices:
             return [position[0], position[1] + 1]
 
     def _create_graph(self):
         queue = []
         queue.append(self.start_pos)
-        # self.vertices.append(self.start_pos)
-        # self.vertices.append(self.exit_pos)
 
         visited = []
         previous = None
@@ -74,27 +102,36 @@ class Maze_Solver(object):
             current = queue.pop(0)
             visited.append(current)
 
-            if previous is not None:
-                previous = self._look_around(current)
+            # always check if there's any local vertices nearby (it can be None)
+            previous = self._look_around(current)
 
+            # filter out local dots by if they're not visited and white
             local_dots = list(map(list, self.neighbours(current[0], current[1])))
             local_dots = list(filter(lambda i: self.board[i[1], i[0]] == 1 and i not in visited, local_dots))
 
-            if len(local_dots) > 1:
+            if len(local_dots) > 1: # choose first local dot and put rest in queue
                 for x in local_dots[1:]:
                     if x not in visited and self.board[x[1], x[0]] == 1:
                         queue.append(list(x))
 
-            elif len(local_dots) == 0:
-                self.vertices.append(current)
+            elif len(local_dots) == 0: # dead end
+                if current not in self.vertices: # add dead end to list
+                    self.vertices.append(current)
+
+                # create an edge from the current and previous node if exists
+                if previous is not None and [previous, current] not in self.edges:
+                    self.edges.append([previous, current])
+
                 continue
 
-            dir = [local_dots[0][0]-current[0], local_dots[0][1]-current[1]]
+            dir = [local_dots[0][0]-current[0], local_dots[0][1]-current[1]] # get change in direction
 
+            # get local dots for new position and do same filtering
             next_pos = self._add_directions(current, dir)
             local_dots = list(map(list, self.neighbours(next_pos[0], next_pos[1])))
             local_dots = list(filter(lambda x: self.board[x[1], x[0]] == 1 and x not in visited, local_dots))
 
+            # continue walk until new discovery
             while len(local_dots) in [0, 1] and next_pos not in self.vertices and next_pos not in  visited:
                 temp_next = self._add_directions(next_pos, dir)
 
@@ -106,15 +143,40 @@ class Maze_Solver(object):
                 local_dots = list(map(list, self.neighbours(next_pos[0], next_pos[1])))
                 local_dots = list(filter(lambda x: self.board[x[1], x[0]] == 1 and x not in visited, local_dots))
 
+            # add new discovery to vertices
             self.vertices.append(list(next_pos))
 
+            # ensure that we have a parent node for edge creation
             if previous == None:
                 previous = current
-                self.vertices.append(previous)
+                if previous not in self.vertices:
+                    self.vertices.append(previous)
 
-            self.edges.append([previous, next_pos])
+            # create an edge
+            if current in self.vertices:
+                self.edges.append([current, next_pos])
+            else:
+                self.edges.append([previous, next_pos])
 
+            # add new position to queue for continued walk
             queue.append(next_pos)
+
+        temp = []
+        for x in self.vertices:
+            edges = [y for y in self.edges if x == y[0]]
+            temp.append(self.Node(x, edges))
+
+        self.vertices = temp
+        for x in self.vertices:
+            if x == self.Node(self.start_pos, []):
+                self.start_pos = x
+                break
+
+        for x in self.vertices:
+            if x == self.Node(self.exit_pos, []):
+                self.exit_pos = x
+                break
+
 
     def neighbours(self, x:int, y:int):
         l, w = self.board.shape
@@ -132,7 +194,7 @@ class Maze_Solver(object):
 
                 yield xp + x, yp + y
 
-    def show_nodes(self):
+    def show_nodes(self, save:bool=True):
         l, w = self.board.shape
 
         img = Image.new('RGB', (w, l), color=(0, 0, 0))
@@ -147,16 +209,105 @@ class Maze_Solver(object):
             arr[x[1], x[0]] = (0, 0, 255)
 
         new_img = Image.fromarray(arr.astype('uint8'), 'RGB')
-        new_img.save("updated.png")
+        if save:
+            new_img.save("nodes.png")
+        else:
+            return new_img
+
+    def _show_pairs(self, pair:list, visited:list=None, next_nodes:list=None):
+        l, w = self.board.shape
+
+        img = Image.new('RGB', (w, l), color=(0, 0, 0))
+        arr = np.array(img)
+
+        for y in range(l):
+            for x in range(w):
+                if self.board[y, x]:
+                    arr[y, x] = (255, 255, 255)
+
+        if visited:
+            for x in visited:
+                arr[x[1], x[0]] = (0, 0, 255)
+
+        if next_nodes:
+            for x in next_nodes:
+                arr[x[1], x[0]] = (255, 128, 0)
+
+        for x in pair:
+            arr[x[1], x[0]] = (0, 255, 255)
+
+        return Image.fromarray(arr.astype('uint8'), 'RGB')
+
+    def _upscale_image(self, img:Image, scale:int=10):
+        l, w = self.board.shape
+
+        im = Image.new('RGB', (l*scale, w*scale), (0, 0, 0))
+        draw = ImageDraw.Draw(im)
+        arr = np.array(img)
+
+        for y in range(l):
+            for x in range(w):
+                draw.rectangle([(x * scale, y * scale), ((x + 1) * scale, (y + 1) * scale)], fill=tuple(arr[y,x]))
+
+        return im
+
+    def BFS(self):
+        queue = [self.start_pos]
+
+        visited = []
+        current = None
+
+        images = [self.maze.convert_to_image(save=False)]
+
+        while len(queue) > 0:
+            if current == self.exit_pos:
+                break
+
+            current = queue.pop(0)
+            visited.append(current)
+
+            nearby_nodes = [x[1] for x in current.edges]
+            nearby_nodes = list(filter(lambda x: x in nearby_nodes, self.vertices))
+
+
+            if len(nearby_nodes) == 1:
+                nearby_nodes[0].parent = current
+                queue.append(nearby_nodes[0])
+            elif len(nearby_nodes) > 1:
+                for x in nearby_nodes:
+                    x.parent = current
+                    queue.append(x)
+
+        path = []
+        while current != self.start_pos:
+            path.append(current)
+            current = current.parent
+
+        path.append(current)
+        path = path[::-1]
+
+        visited = []
+        for x in path:
+            visited.append(x)
+            images.append(self._show_pairs([x], visited=visited))
+
+        images = [self._upscale_image(x, 10) for x in images]
+
+        images[0].save('walk.gif',
+                       save_all=True, append_images=images[1:], optimize=False, duration=len(images)*3, loop=0)
+
 
 
 def main():
-    m = Maze.Maze(length=6, width=6)
+    m = Maze.Maze(length=20, width=20)
+    # m.read_picture()
+
     m.iterative_backtrack()
     m.convert_to_image()
 
     sol = Maze_Solver(m)
     sol.show_nodes()
+    sol.BFS()
 
 
 if __name__ == '__main__':

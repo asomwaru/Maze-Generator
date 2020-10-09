@@ -166,7 +166,7 @@ class Maze(object):
 
             print("".join(row))
 
-    def convert_to_image(self, name:str='maze.png'):
+    def convert_to_image(self, name:str='maze.png', save:bool=True):
         l, w = (self.length * 2) + 1, (self.width * 2) + 1
         offset = 1
         img = Image.new('RGB', (w, l), color=(255, 255, 255))
@@ -197,7 +197,10 @@ class Maze(object):
         arr[l - 1, w - 2] = (255, 0, 0)
 
         new_img = Image.fromarray(arr.astype('uint8'), 'RGB')
-        new_img.save(name)
+        if save:
+            new_img.save(name)
+        else:
+            return new_img
 
     def simple_ascii(self):
         l, w = (self.length * 2) + 1, (self.width * 2) + 1
