@@ -30,6 +30,12 @@ class Maze_Solver(object):
         def __getitem__(self, index: int):  # Apparently it can do it for any amount of arguments
             return self.pos[index]
 
+        def __add__(self, other):
+            return [self.pos[0] + other.pos[0], self.pos[1] + other.pos[1]]
+
+        def __sub__(self, other):
+            return [self.pos[0] - other.pos[0], self.pos[1] - other.pos[1]]
+
         def __repr__(self):
             return str(self.pos)
 
@@ -41,6 +47,7 @@ class Maze_Solver(object):
 
         self.vertices = []
         self.edges = []
+        self.path = []
 
         self.width = self.maze.width
         self.length = self.maze.length
@@ -194,25 +201,9 @@ class Maze_Solver(object):
 
                 yield xp + x, yp + y
 
-    def show_nodes(self, save:bool=True):
-        l, w = self.board.shape
-
-        img = Image.new('RGB', (w, l), color=(0, 0, 0))
-        arr = np.array(img)
-
-        for y in range(l):
-            for x in range(w):
-                if self.board[y, x] == 1:
-                    arr[y, x] = (255, 255, 255)
-
+    def clear(self):
         for x in self.vertices:
-            arr[x[1], x[0]] = (0, 0, 255)
-
-        new_img = Image.fromarray(arr.astype('uint8'), 'RGB')
-        if save:
-            new_img.save("nodes.png")
-        else:
-            return new_img
+            x.parent = None
 
     def _show_pairs(self, pair:list, visited:list=None, next_nodes:list=None):
         l, w = self.board.shape
@@ -257,8 +248,6 @@ class Maze_Solver(object):
         visited = []
         current = None
 
-        images = [self.maze.convert_to_image(save=False)]
-
         while len(queue) > 0:
             if current == self.exit_pos:
                 break
@@ -285,29 +274,80 @@ class Maze_Solver(object):
 
         path.append(current)
         path = path[::-1]
+        self.path = path
 
+    def show_path(self, speed:float=0.75):
+        images = []
         visited = []
-        for x in path:
+        for x in self.path:
             visited.append(x)
             images.append(self._show_pairs([x], visited=visited))
 
-        images = [self._upscale_image(x, 10) for x in images]
+        duration = int(len(images) * speed)
+        print(duration)
+
+        images = [self._upscale_image(x, 4) for x in images]
 
         images[0].save('walk.gif',
-                       save_all=True, append_images=images[1:], optimize=False, duration=len(images)*3, loop=0)
+                       save_all=True, append_images=images[1:], optimize=False, duration=duration, loop=0)
 
+    def show_path(self, upscale:bool=False):
+        l, w = self.board.shape
+
+        img = Image.new('RGB', (w, l), color=(0, 0, 0))
+        arr = np.array(img)
+
+        for y in range(l):
+            for x in range(w):
+                if self.board[y, x]:
+                    arr[y, x] = (255, 255, 255)
+
+        current = self.exit_pos
+        while current != self.start_pos:
+            diff = current - current.parent
+            index = 0 if diff[0] != 0 else 1
+
+            if index == 0 and diff[index] > 0:
+                for x in range(diff[index]):
+                    arr[current[1], x+current.parent[0]] = (0, 255, 0)
+
+            elif index == 0 and diff[index] < 0:
+                for x in range(abs(diff[index])):
+                    arr[current[1], -x+current.parent[0]] = (0, 255, 0)
+
+            elif index == 1 and diff[index] < 0:
+                for y in range(abs(diff[index])):
+                    arr[-y+current.parent[1], current[0]] = (0, 255, 0)
+
+            else:
+                for y in range(diff[index]):
+                    arr[y+current.parent[1], current[0]] = (0, 255, 0)
+
+            arr[current[1], current[0]] = (0, 255, 0)
+            current = current.parent
+
+        arr[current[1], current[0]] = (0, 255, 0)
+
+        if upscale:
+            self._upscale_image(Image.fromarray(arr.astype('uint8'), 'RGB'), 8).save('nodes.png')
+        else:
+            Image.fromarray(arr.astype('uint8'), 'RGB').save('nodes.png')
 
 
 def main():
-    m = Maze.Maze(length=20, width=20)
-    # m.read_picture()
+    m = Maze.Maze(length=35, width=35)
+    m.read_picture()
 
-    m.iterative_backtrack()
-    m.convert_to_image()
+    print("Read the image in")
+    # m.iterative_backtrack()
+    # m.convert_to_image()
 
     sol = Maze_Solver(m)
-    sol.show_nodes()
+    print("Solving maze")
     sol.BFS()
+
+    print("Saving the maze")
+    sol.show_path()
 
 
 if __name__ == '__main__':
