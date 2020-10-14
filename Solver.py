@@ -276,7 +276,41 @@ class Maze_Solver(object):
         path = path[::-1]
         self.path = path
 
-    def show_path(self, speed:float=0.75):
+    def DFS(self):
+        stack = [self.start_pos]
+
+        visited = []
+        current = None
+
+        while len(stack) > 0:
+            if current == self.exit_pos:
+                break
+
+            current = stack.pop()
+            visited.append(current)
+
+            nearby_nodes = [x[1] for x in current.edges]
+            nearby_nodes = list(filter(lambda x: x in nearby_nodes, self.vertices))
+
+
+            if len(nearby_nodes) == 1:
+                nearby_nodes[0].parent = current
+                stack.append(nearby_nodes[0])
+            elif len(nearby_nodes) > 1:
+                for x in nearby_nodes:
+                    x.parent = current
+                    stack.append(x)
+
+        path = []
+        while current != self.start_pos:
+            path.append(current)
+            current = current.parent
+
+        path.append(current)
+        path = path[::-1]
+        self.path = path
+
+    def walk_animation(self, speed:float=0.75): # not done
         images = []
         visited = []
         for x in self.path:
@@ -336,15 +370,15 @@ class Maze_Solver(object):
 
 def main():
     m = Maze.Maze(length=35, width=35)
-    m.read_picture()
+    # m.read_picture()
 
     print("Read the image in")
-    # m.iterative_backtrack()
-    # m.convert_to_image()
+    m.iterative_backtrack()
+    m.convert_to_image()
 
     sol = Maze_Solver(m)
     print("Solving maze")
-    sol.BFS()
+    sol.DFS()
 
     print("Saving the maze")
     sol.show_path()
