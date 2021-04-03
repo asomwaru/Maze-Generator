@@ -11,9 +11,9 @@ Maze Solving algorithms:
 * Breadth first search
 
 
-I created a `Maze` class that handles all of the generation. This class takes in two parameters that denote height and width by nodes, not the true length and width of the maze. The maze is made using a `Node` class that has its own *x* and *y* position and an array denoting the walls that exist or do not for the Node. If a wall exist that means there is no connection between the current node and the node in the direction of the wall. 
+I created a `Maze` class that handles all of the generation. This class takes in two parameters that denote height and width by nodes, not the true length and width of the maze. The maze is made using a `Node` class that has its own x and y position and an array denoting the walls that exist or do not for the Node. If a wall exist that means there is no connection between the current node and the node in the direction of the wall. 
 
-There are many ways to output the image of the maze. Using `simple_ascii` you can output is a text file; `display_maze` prints it out to the terminal; and `convert_to_image` creates two images where one of them is for image reading and the other is so that you can actually see the maze without zooming in too much.
+There are many ways to output the image of the maze. Using `Maze.simple_ascii` you can output is a text file; `Maze.display_maze` prints it out to the terminal; and `Maze.convert_to_image` creates two images where one of them is for image reading and the other is so that you can see the maze without zooming in too much.
 
 
 ## Maze Generation
@@ -43,10 +43,4 @@ Both algorithms implemented are very popular and useful for solving graph proble
 ### Depth First Algorithm
 
 Instead of finding the solution using "waves", the Depth First algorithm solves the maze by continually going through nodes until it reaches a dead end or if it finds the exit/end node. Before the algorithm makes its choice in where to go, it saves all of the directions it can in a stack. Like the Bread First algorithm, if the path it took ends up being a dead end, then it will go to the other nodes in the stack until it reaches the end or runs out of spots to go.
-
-### Comparing the algorithms
-
-With the way I set up the maze generation, there is only one path you can take to solve the maze. This means that comparing the routes that both algorithm took will be the exact same. However, we can take a look at what the algorithms did while trying to solve the maze.
-
-![maze](assets/unsolved.png)
 
