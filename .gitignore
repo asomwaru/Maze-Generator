@@ -2,9 +2,9 @@ venv
 .vscode
 .idea
 
+walk.gif
+temp.py
+upscaled.png
 maze.png
 nodes.png
-walk.gif
-maze.txt
-temp.py
-updated.png
+__pycache__
